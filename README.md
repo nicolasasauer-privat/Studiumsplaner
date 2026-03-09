@@ -93,7 +93,7 @@ In `docker-compose.yml` den `context` anpassen:
 
 ```yaml
 build:
-  context: https://github.com/nicolasasauer-privat/Studiumsplaner.git#main
+  context: https://github.com/nicolasasauer/Studiumsplaner.git#main
   dockerfile: Dockerfile
 ```
 

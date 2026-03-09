@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+dist
+test-results
+.git
+.gitignore
+.github
+.vscode
+.idea
+*.md
+LICENSE
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+.DS_Store

@@ -72,6 +72,52 @@ node scripts/manual-like-e2e.mjs
 
 Testreport wird in `test-results/manual-like-e2e-report.json` geschrieben.
 
+## Docker & Docker Compose
+
+### Mit Docker Compose starten (lokal)
+
+```bash
+docker-compose up --build
+```
+
+App laeuft dann auf `http://localhost:3000`
+
+Stoppen:
+```bash
+docker-compose down
+```
+
+### Mit Docker Compose aus GitHub starten
+
+In `docker-compose.yml` den `context` anpassen:
+
+```yaml
+build:
+  context: https://github.com/nicolasasauer-privat/Studiumsplaner.git#main
+  dockerfile: Dockerfile
+```
+
+Dann:
+```bash
+docker-compose up
+```
+
+### Docker Image selber bauen
+
+```bash
+docker build -t studiumsplaner:latest .
+docker run -p 3000:3000 studiumsplaner:latest
+```
+
+App laeuft auf `http://localhost:3000`
+
+### Dockerfile-Details
+
+- **Multi-Stage-Build**: Reduziert finale Image-Groesse
+- **Build-Stage**: Node 20 baut TypeScript & Vite
+- **Runtime-Stage**: Minimales Image mit `serve` fuer statische Dateien
+- **Health Check**: Ueberwacht Container-Status
+
 ## PowerShell-Hinweis (Windows)
 
 Falls in PowerShell der Fehler "script execution is disabled" erscheint:

@@ -106,7 +106,7 @@ docker-compose up
 
 ```bash
 docker build -t studiumsplaner:latest .
-docker run -p 3000:3000 studiumsplaner:latest
+docker run -p 3000:80 studiumsplaner:latest
 ```
 
 App laeuft auf `http://localhost:3000`
@@ -115,7 +115,7 @@ App laeuft auf `http://localhost:3000`
 
 - **Multi-Stage-Build**: Reduziert finale Image-Groesse
 - **Build-Stage**: Node 20 baut TypeScript & Vite
-- **Runtime-Stage**: Minimales Image mit `serve` fuer statische Dateien
+- **Runtime-Stage**: Minimales nginx-Alpine-Image serviert statische Dateien
 - **Health Check**: Ueberwacht Container-Status
 
 ## PowerShell-Hinweis (Windows)

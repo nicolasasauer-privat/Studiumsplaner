@@ -23,22 +23,20 @@ COPY index.html ./
 RUN npm run build
 
 # Runtime stage
-FROM node:20-alpine
+FROM nginx:alpine
 
-WORKDIR /app
-
-# Install serve to run static app
-RUN npm install -g serve
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built app from builder
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Expose port
-EXPOSE 3000
+EXPOSE 80
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+  CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
 
-# Start app
-CMD ["serve", "-s", "dist", "-l", "3000"]
+# Start nginx (default CMD from nginx image is sufficient)
+CMD ["nginx", "-g", "daemon off;"]

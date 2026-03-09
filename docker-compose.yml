@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   studiumsplaner:
     build:
-      context: https://github.com/nicolasasauer-privat/Studiumsplaner.git#main
+      context: .
       dockerfile: Dockerfile
     
     container_name: studiumsplaner

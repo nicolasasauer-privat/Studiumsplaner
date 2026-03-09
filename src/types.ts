@@ -4,11 +4,13 @@ export interface Lecture {
   id: string;
   name: string;
   ects: number;
-  examDate: string;
+  examDate?: string;
   season: 'winter' | 'summer' | 'both';
   description: string;
   color: string;
   semesterId?: string;
+  passed?: boolean;
+  grade?: number;
 }
 
 export interface Semester {

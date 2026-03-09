@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Droppable } from 'react-beautiful-dnd';
-import { ChevronDown, Trash2, ArrowDown, ArrowUp } from 'lucide-react';
+import { ChevronDown, Trash2, ArrowDown, ArrowUp, CheckCircle2 } from 'lucide-react';
 import type { Semester } from '../types';
 import { useStudyPlanStore } from '../store';
 import { LectureCard } from './LectureCard';
@@ -17,6 +17,12 @@ export const SemesterSection: React.FC<SemesterSectionProps> = ({ semester, onEd
   const sortSemesterLectures = useStudyPlanStore(state => state.sortSemesterLectures);
 
   const totalEcts = semester.lectures.reduce((sum, lecture) => sum + lecture.ects, 0);
+  const passedLectures = semester.lectures.filter(l => l.passed);
+  const passedEcts = passedLectures.reduce((sum, l) => sum + l.ects, 0);
+  const gradedLectures = passedLectures.filter(l => l.grade !== undefined);
+  const avgGrade = gradedLectures.length > 0
+    ? gradedLectures.reduce((sum, l) => sum + (l.grade ?? 0), 0) / gradedLectures.length
+    : null;
 
   const handleSort = (type: 'date' | 'ects') => {
     if (sortBy === type) {
@@ -50,9 +56,22 @@ export const SemesterSection: React.FC<SemesterSectionProps> = ({ semester, onEd
           </button>
           <div>
             <h2 className="text-2xl font-bold text-white">Semester {semester.number}</h2>
-            <p className="text-sm text-gray-400">
-              {semester.lectures.length} Veranstaltung{semester.lectures.length !== 1 ? 'en' : ''} • {totalEcts} ECTS • {seasonLabel}
-            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+              <p className="text-sm text-gray-400">
+                {semester.lectures.length} Veranstaltung{semester.lectures.length !== 1 ? 'en' : ''} · {totalEcts} ECTS · {seasonLabel}
+              </p>
+              {passedEcts > 0 && (
+                <span className="flex items-center gap-1 text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
+                  <CheckCircle2 size={11} />
+                  {passedEcts} bestanden
+                </span>
+              )}
+              {avgGrade !== null && (
+                <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+                  Ø {avgGrade.toFixed(1).replace('.', ',')}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <button

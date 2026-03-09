@@ -287,7 +287,12 @@ export const useStudyPlanStore = create<StudyPlanStore>((set, get) => ({
         if (s.id === semesterId) {
           const sorted = [...s.lectures].sort((a, b) => {
             if (sortBy === 'date') {
-              return new Date(a.examDate).getTime() - new Date(b.examDate).getTime();
+              const aTime = a.examDate ? new Date(a.examDate).getTime() : null;
+              const bTime = b.examDate ? new Date(b.examDate).getTime() : null;
+              if (aTime !== null && bTime !== null) return aTime - bTime;
+              if (aTime !== null) return -1;
+              if (bTime !== null) return 1;
+              return a.name.localeCompare(b.name);
             }
             return b.ects - a.ects;
           });

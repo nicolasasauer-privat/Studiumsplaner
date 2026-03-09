@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import type { DropResult } from 'react-beautiful-dnd';
 import { DragDropContext } from 'react-beautiful-dnd';
-import { Plus, BookOpen, Download, Upload } from 'lucide-react';
+import { Plus, BookOpen, Download, Upload, CheckCircle2 } from 'lucide-react';
 import type { SemesterSeason } from './types';
 import { useStudyPlanStore } from './store';
 import {
@@ -35,6 +35,15 @@ function App() {
   useEffect(() => {
     setPlanNameInput(planName);
   }, [planName]);
+
+  const allLectures = [...semesters.flatMap(s => s.lectures), ...parkingLot];
+  const totalEcts = allLectures.reduce((sum, l) => sum + l.ects, 0);
+  const passedLectures = allLectures.filter(l => l.passed);
+  const passedEcts = passedLectures.reduce((sum, l) => sum + l.ects, 0);
+  const gradedLectures = passedLectures.filter(l => l.grade !== undefined);
+  const avgGrade = gradedLectures.length > 0
+    ? gradedLectures.reduce((sum, l) => sum + (l.grade ?? 0), 0) / gradedLectures.length
+    : null;
 
   const handleSetupSubmit = (values: { planName: string; regularSemesters: number; startSeason: SemesterSeason }) => {
     initializePlan(values);
@@ -127,7 +136,7 @@ function App() {
       <div className="min-h-screen">
         <header className="sticky top-0 z-40 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700 shadow-lg">
           <div className="max-w-7xl mx-auto px-6 py-6">
-            <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-600 rounded-lg">
                   <BookOpen size={28} className="text-white" />
@@ -158,7 +167,7 @@ function App() {
                   className="btn-secondary flex items-center gap-2"
                   title="Plan exportieren"
                 >
-                  <Download size={20} />
+                  <Upload size={20} />
                   Export
                 </button>
                 <button
@@ -166,7 +175,7 @@ function App() {
                   className="btn-secondary flex items-center gap-2"
                   title="Plan importieren"
                 >
-                  <Upload size={20} />
+                  <Download size={20} />
                   Import
                 </button>
                 <button
@@ -185,6 +194,25 @@ function App() {
                 </button>
               </div>
             </div>
+            {totalEcts > 0 && (
+              <div className="mt-3 pt-3 border-t border-slate-700 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+                <span className="text-gray-400">
+                  <span className="text-white font-semibold">{totalEcts}</span> ECTS geplant
+                </span>
+                {passedEcts > 0 && (
+                  <span className="flex items-center gap-1 text-green-400">
+                    <CheckCircle2 size={14} />
+                    <span className="font-semibold">{passedEcts}</span> ECTS bestanden
+                    <span className="text-gray-500">({passedLectures.length}/{allLectures.length} Klausuren)</span>
+                  </span>
+                )}
+                {avgGrade !== null && (
+                  <span className="text-gray-400">
+                    Ø Note: <span className="text-blue-400 font-semibold">{avgGrade.toFixed(1).replace('.', ',')}</span>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </header>
 

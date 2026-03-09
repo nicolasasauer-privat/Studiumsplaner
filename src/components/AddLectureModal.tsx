@@ -19,6 +19,8 @@ const getInitialFormData = (initialLecture?: Lecture): Omit<Lecture, 'id'> => {
       season: initialLecture.season,
       description: initialLecture.description,
       color: initialLecture.color,
+      passed: initialLecture.passed,
+      grade: initialLecture.grade,
     };
   }
 
@@ -29,6 +31,8 @@ const getInitialFormData = (initialLecture?: Lecture): Omit<Lecture, 'id'> => {
     season: 'both',
     description: '',
     color: COLORS[0],
+    passed: false,
+    grade: undefined,
   };
 };
 
@@ -40,17 +44,27 @@ export const AddLectureModal: React.FC<AddLectureModalProps> = ({ isOpen, onClos
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.examDate) {
+    if (!formData.name) {
       alert('Bitte füllen Sie alle erforderlichen Felder aus');
       return;
     }
 
+    const grade = formData.passed && formData.grade !== undefined
+      ? formData.grade
+      : undefined;
+
+    if (grade !== undefined && (grade < 1.0 || grade > 5.0)) {
+      alert('Die Note muss zwischen 1,0 und 5,0 liegen.');
+      return;
+    }
+
     if (initialLecture) {
-      updateLecture(initialLecture.id, formData);
+      updateLecture(initialLecture.id, { ...formData, grade });
     } else {
       const newLecture: Lecture = {
         id: Date.now().toString(),
         ...formData,
+        grade,
       };
       addLecture(newLecture);
     }
@@ -120,14 +134,52 @@ export const AddLectureModal: React.FC<AddLectureModalProps> = ({ isOpen, onClos
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Klausurdatum *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Klausurdatum <span className="text-gray-500">(optional)</span></label>
             <input
               type="date"
-              value={formData.examDate}
-              onChange={(e) => setFormData({ ...formData, examDate: e.target.value })}
+              value={formData.examDate ?? ''}
+              onChange={(e) => setFormData({ ...formData, examDate: e.target.value || undefined })}
               className="input-field"
-              required
             />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="passed"
+                checked={!!formData.passed}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  passed: e.target.checked,
+                  grade: e.target.checked ? formData.grade : undefined,
+                })}
+                className="w-4 h-4 rounded accent-blue-500 cursor-pointer"
+              />
+              <label htmlFor="passed" className="text-sm font-medium text-gray-300 cursor-pointer">
+                Klausur bestanden
+              </label>
+            </div>
+            {formData.passed && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Note <span className="text-gray-500">(optional, 1,0 – 5,0)</span>
+                </label>
+                <input
+                  type="number"
+                  min="1.0"
+                  max="5.0"
+                  step="0.1"
+                  value={formData.grade ?? ''}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    grade: e.target.value ? parseFloat(e.target.value) : undefined,
+                  })}
+                  placeholder="z.B. 1,7"
+                  className="input-field"
+                />
+              </div>
+            )}
           </div>
 
           <div>

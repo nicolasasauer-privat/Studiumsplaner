@@ -1,9 +1,6 @@
 services:
   studiumsplaner:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    
+    image: ghcr.io/nicolasasauer/studiumsplaner:latest
     container_name: studiumsplaner
     ports:
       - "3000:80"

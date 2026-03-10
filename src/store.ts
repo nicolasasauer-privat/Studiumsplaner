@@ -2,17 +2,18 @@ import { create } from 'zustand';
 import type { Lecture, Semester, SemesterSeason, StudyPlan } from './types';
 
 const PLAN_STORAGE_KEY = 'studyPlan';
-const API_URL = '/api/plan';
+const CURRENT_USER_KEY = 'currentUser';
 
-const syncToServer = (plan: StudyPlan): void => {
-  fetch(API_URL, {
-    method: 'PUT',
+const syncToServer = (plan: StudyPlan, username: string): void => {
+  fetch(`/api/plan/${encodeURIComponent(username)}`, {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(plan),
   }).catch(() => {
     // Server not available – localStorage-only mode
   });
 };
+
 const DEFAULT_PLAN_NAME = 'Mein Studienplan';
 const DEFAULT_REGULAR_SEMESTERS = 6;
 const DEFAULT_START_SEASON: SemesterSeason = 'winter';
@@ -47,7 +48,7 @@ const generateInitialSemesters = (count: number, startSeason: SemesterSeason): S
   );
 };
 
-const migrateStudyPlan = (raw: unknown): StudyPlan => {
+export const migrateStudyPlan = (raw: unknown): StudyPlan => {
   const fallback: StudyPlan = {
     planName: DEFAULT_PLAN_NAME,
     regularSemesters: DEFAULT_REGULAR_SEMESTERS,
@@ -115,7 +116,23 @@ const migrateStudyPlan = (raw: unknown): StudyPlan => {
   };
 };
 
+// Validate that a parsed object matches the StudyPlan interface
+export const isValidStudyPlan = (data: unknown): data is StudyPlan => {
+  if (!data || typeof data !== 'object') return false;
+  const d = data as Record<string, unknown>;
+  if (typeof d.planName !== 'string') return false;
+  if (typeof d.regularSemesters !== 'number') return false;
+  if (d.startSeason !== 'winter' && d.startSeason !== 'summer') return false;
+  if (typeof d.isConfigured !== 'boolean') return false;
+  if (!Array.isArray(d.semesters)) return false;
+  if (!Array.isArray(d.parkingLot)) return false;
+  return true;
+};
+
 interface StudyPlanStore extends StudyPlan {
+  currentUser: string | null;
+  setCurrentUser: (username: string | null) => void;
+  loadPlanForUser: (username: string) => Promise<void>;
   initializePlan: (options: { planName: string; regularSemesters: number; startSeason: SemesterSeason }) => void;
   setPlanName: (name: string) => void;
   addSemester: () => void;
@@ -133,13 +150,57 @@ interface StudyPlanStore extends StudyPlan {
   importPlan: (jsonString: string) => void;
 }
 
-export const useStudyPlanStore = create<StudyPlanStore>((set, get) => ({
+const defaultPlan: StudyPlan = {
   planName: DEFAULT_PLAN_NAME,
   regularSemesters: DEFAULT_REGULAR_SEMESTERS,
   startSeason: DEFAULT_START_SEASON,
   isConfigured: false,
   semesters: generateInitialSemesters(DEFAULT_REGULAR_SEMESTERS, DEFAULT_START_SEASON),
   parkingLot: [],
+};
+
+export const useStudyPlanStore = create<StudyPlanStore>((set, get) => ({
+  currentUser: null,
+  ...defaultPlan,
+
+  setCurrentUser: (username: string | null) => {
+    if (username) {
+      set({ currentUser: username });
+      localStorage.setItem(CURRENT_USER_KEY, username);
+    } else {
+      // Reset user and plan atomically when logging out
+      set({ currentUser: null, ...defaultPlan, isConfigured: false });
+      localStorage.removeItem(CURRENT_USER_KEY);
+      localStorage.removeItem(PLAN_STORAGE_KEY);
+    }
+  },
+
+  loadPlanForUser: async (username: string) => {
+    try {
+      const res = await fetch(`/api/plan/${encodeURIComponent(username)}`);
+      if (res.ok) {
+        const data = await res.json() as unknown;
+        const serverPlan = migrateStudyPlan(data);
+        set(serverPlan);
+        localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(serverPlan));
+      } else {
+        // No plan on server yet – start fresh (unconfigured)
+        set({ ...defaultPlan, isConfigured: false });
+        localStorage.removeItem(PLAN_STORAGE_KEY);
+      }
+    } catch {
+      // Server not available – try localStorage fallback
+      const savedPlan = localStorage.getItem(PLAN_STORAGE_KEY);
+      if (savedPlan) {
+        try {
+          const parsed = JSON.parse(savedPlan) as unknown;
+          set(migrateStudyPlan(parsed));
+        } catch {
+          set({ ...defaultPlan, isConfigured: false });
+        }
+      }
+    }
+  },
 
   initializePlan: ({ planName, regularSemesters, startSeason }) => {
     const normalizedName = planName.trim() || DEFAULT_PLAN_NAME;
@@ -341,17 +402,24 @@ export const useStudyPlanStore = create<StudyPlanStore>((set, get) => ({
       parkingLot: state.parkingLot,
     };
     localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(plan));
-    syncToServer(plan);
+    if (state.currentUser) {
+      syncToServer(plan, state.currentUser);
+    }
     return JSON.stringify(plan);
   },
 
   exportPlan: () => {
-    const jsonString = get().savePlan();
+    const state = get();
+    const jsonString = state.savePlan();
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `studienplan-${get().planName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.json`;
+    const date = new Date().toISOString().split('T')[0];
+    const username = state.currentUser
+      ? state.currentUser.replace(/[^a-z0-9]/gi, '-').toLowerCase()
+      : state.planName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    a.download = `studiumsplaner_${username}_${date}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -361,6 +429,9 @@ export const useStudyPlanStore = create<StudyPlanStore>((set, get) => ({
   importPlan: (jsonString: string) => {
     try {
       const parsed = JSON.parse(jsonString) as unknown;
+      if (!isValidStudyPlan(parsed)) {
+        throw new Error('Ungültiges Format');
+      }
       const migratedPlan = migrateStudyPlan(parsed);
       set(migratedPlan);
       get().savePlan();
@@ -370,25 +441,3 @@ export const useStudyPlanStore = create<StudyPlanStore>((set, get) => ({
     }
   },
 }));
-
-const savedPlan = localStorage.getItem(PLAN_STORAGE_KEY);
-if (savedPlan) {
-  try {
-    const parsed = JSON.parse(savedPlan) as unknown;
-    useStudyPlanStore.setState(migrateStudyPlan(parsed));
-  } catch (error) {
-    console.error('Failed to load saved plan:', error);
-  }
-}
-
-// Load from server – authoritative source so all devices share the same state
-fetch(API_URL)
-  .then((res) => (res.ok ? (res.json() as Promise<unknown>) : Promise.reject()))
-  .then((data) => {
-    const serverPlan = migrateStudyPlan(data);
-    useStudyPlanStore.setState(serverPlan);
-    localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(serverPlan));
-  })
-  .catch(() => {
-    // Server not available – keep using the value already loaded from localStorage
-  });

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import type { DropResult } from 'react-beautiful-dnd';
 import { DragDropContext } from 'react-beautiful-dnd';
-import { Plus, BookOpen, Download, Upload, CheckCircle2, ChevronsUpDown } from 'lucide-react';
+import { Plus, BookOpen, Download, Upload, CheckCircle2, ChevronsUpDown, LogOut, User } from 'lucide-react';
 import type { SemesterSeason } from './types';
 import { useStudyPlanStore } from './store';
 import {
@@ -9,6 +9,7 @@ import {
   PlanSetupModal,
   SemesterSection,
   ParkingLot,
+  UserSelection,
 } from './components';
 
 function App() {
@@ -18,6 +19,9 @@ function App() {
   const [allCollapsed, setAllCollapsed] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const currentUser = useStudyPlanStore(state => state.currentUser);
+  const setCurrentUser = useStudyPlanStore(state => state.setCurrentUser);
+  const loadPlanForUser = useStudyPlanStore(state => state.loadPlanForUser);
   const planName = useStudyPlanStore(state => state.planName);
   const regularSemesters = useStudyPlanStore(state => state.regularSemesters);
   const startSeason = useStudyPlanStore(state => state.startSeason);
@@ -36,6 +40,15 @@ function App() {
   useEffect(() => {
     setPlanNameInput(planName);
   }, [planName]);
+
+  const handleLogin = (username: string) => {
+    setCurrentUser(username);
+    void loadPlanForUser(username);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+  };
 
   const allLectures = [...semesters.flatMap(s => s.lectures), ...parkingLot];
   const totalEcts = allLectures.reduce((sum, l) => sum + l.ects, 0);
@@ -109,6 +122,10 @@ function App() {
   };
 
   const handleImport = () => {
+    if (!currentUser) {
+      alert('Bitte zuerst einen Benutzer auswählen.');
+      return;
+    }
     fileInputRef.current?.click();
   };
 
@@ -163,6 +180,23 @@ function App() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 sm:gap-3">
+                {currentUser && (
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1 text-sm text-slate-300">
+                      <User size={14} className="text-blue-400" />
+                      <span className="hidden sm:inline">{currentUser}</span>
+                    </span>
+                    <button
+                      onClick={handleLogout}
+                      className="btn-secondary flex items-center gap-2"
+                      title="Abmelden"
+                      aria-label="Abmelden"
+                    >
+                      <LogOut size={18} aria-hidden="true" />
+                      <span className="hidden sm:inline">Abmelden</span>
+                    </button>
+                  </div>
+                )}
                 <button
                   onClick={exportPlan}
                   className="btn-secondary flex items-center gap-2"
@@ -284,9 +318,13 @@ function App() {
       />
 
       <PlanSetupModal
-        isOpen={!isConfigured}
+        isOpen={isConfigured === false && currentUser !== null}
         onSubmit={handleSetupSubmit}
       />
+
+      {currentUser === null && (
+        <UserSelection onLogin={handleLogin} />
+      )}
 
       <input
         ref={fileInputRef}
@@ -300,4 +338,3 @@ function App() {
 }
 
 export default App;
-

@@ -5,6 +5,10 @@
 [![GitHub Stars](https://img.shields.io/github/stars/nicolasasauer/studiumsplaner?style=flat-square&logo=github)](https://github.com/nicolasasauer/studiumsplaner/stargazers)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/nicolasasauer/studiumsplaner/docker-publish.yml?branch=main&style=flat-square&label=build)](https://github.com/nicolasasauer/studiumsplaner/actions/workflows/docker-publish.yml)
 
+Wenn dir das Projekt hilft, freue ich mich über einen Stern! ⭐
+
+[![GitHub Stars](https://img.shields.io/github/stars/nicolasasauer/studiumsplaner?style=for-the-badge&logo=github&label=Star%20on%20GitHub)](https://github.com/nicolasasauer/studiumsplaner/stargazers)
+
 StudiumsPlaner ist eine Web-App zur Planung von Semestern und Klausuren mit Drag-and-drop.
 Der Fokus liegt auf einer schnellen, visuellen Studienplanung mit Parkplatz-Logik fuer noch nicht zugeordnete Veranstaltungen.
 

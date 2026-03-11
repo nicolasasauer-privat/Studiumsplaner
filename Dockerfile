@@ -3,11 +3,14 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++
+
 # Copy package files
 COPY package*.json ./
 COPY tsconfig*.json ./
 
-# Install dependencies
+# Install all dependencies (including native build)
 RUN npm ci
 
 # Copy source code
@@ -27,15 +30,20 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files and install production dependencies only
+# Install build tools needed for better-sqlite3 native compilation, then remove them
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN apk add --no-cache python3 make g++ && \
+    npm ci --omit=dev && \
+    apk del python3 make g++
 
 # Copy server
 COPY server ./server
 
 # Copy built frontend from builder
 COPY --from=builder /app/dist ./dist
+
+# Create data directory
+RUN mkdir -p /data
 
 # Expose port
 EXPOSE 3000

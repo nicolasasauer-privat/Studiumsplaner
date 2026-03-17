@@ -21,6 +21,7 @@ function App() {
 
   const currentUser = useStudyPlanStore(state => state.currentUser);
   const setCurrentUser = useStudyPlanStore(state => state.setCurrentUser);
+  const setAuthToken = useStudyPlanStore(state => state.setAuthToken);
   const loadPlanForUser = useStudyPlanStore(state => state.loadPlanForUser);
   const planName = useStudyPlanStore(state => state.planName);
   const regularSemesters = useStudyPlanStore(state => state.regularSemesters);
@@ -41,9 +42,10 @@ function App() {
     setPlanNameInput(planName);
   }, [planName]);
 
-  const handleLogin = (username: string) => {
+  const handleLogin = (username: string, token: string) => {
     setCurrentUser(username);
-    void loadPlanForUser(username);
+    setAuthToken(token);
+    void loadPlanForUser(username, token);
   };
 
   const handleLogout = () => {
@@ -172,6 +174,7 @@ function App() {
                         (e.currentTarget as HTMLInputElement).blur();
                       }
                     }}
+                    maxLength={200}
                     aria-label="Planname"
                   />
                   <p className="text-sm text-gray-400">

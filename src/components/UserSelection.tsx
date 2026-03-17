@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, UserPlus, LogIn, Eye, EyeOff } from 'lucide-react';
 
 interface UserSelectionProps {
-  onLogin: (username: string) => void;
+  onLogin: (username: string, token: string) => void;
 }
 
 type View = 'select' | 'create';
@@ -38,9 +38,9 @@ export const UserSelection: React.FC<UserSelectionProps> = ({ onLogin }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username }),
       });
-      const data = await res.json() as { requiresPassword?: boolean; username?: string };
-      if (res.ok) {
-        onLogin(username);
+      const data = await res.json() as { requiresPassword?: boolean; username?: string; token?: string };
+      if (res.ok && data.token) {
+        onLogin(username, data.token);
       } else if (res.status === 401 && data.requiresPassword) {
         setRequiresPassword(true);
       } else {
@@ -61,10 +61,10 @@ export const UserSelection: React.FC<UserSelectionProps> = ({ onLogin }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: selectedUser, password }),
       });
-      if (res.ok) {
-        onLogin(selectedUser);
+      const data = await res.json() as { username?: string; token?: string; error?: string };
+      if (res.ok && data.token) {
+        onLogin(selectedUser, data.token);
       } else {
-        const data = await res.json() as { error?: string };
         setError(data.error ?? 'Falsches Passwort');
       }
     } catch {
@@ -88,10 +88,10 @@ export const UserSelection: React.FC<UserSelectionProps> = ({ onLogin }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (res.ok) {
-        onLogin(newUsername.trim());
+      const data = await res.json() as { username?: string; token?: string; error?: string };
+      if (res.ok && data.token) {
+        onLogin(newUsername.trim(), data.token);
       } else {
-        const data = await res.json() as { error?: string };
         setError(data.error ?? 'Fehler beim Erstellen');
       }
     } catch {
@@ -161,6 +161,7 @@ export const UserSelection: React.FC<UserSelectionProps> = ({ onLogin }) => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Passwort eingeben"
+                    maxLength={128}
                     autoFocus
                     required
                   />
@@ -219,6 +220,7 @@ export const UserSelection: React.FC<UserSelectionProps> = ({ onLogin }) => {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Leer lassen für kein Passwort"
+                  maxLength={128}
                 />
                 <button
                   type="button"

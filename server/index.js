@@ -2,6 +2,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -10,6 +11,54 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const MAX_PASSWORD_LENGTH = 128;
+
+// In-memory session store: token → { username, expiresAt }
+const sessions = new Map();
+
+function createSession(username) {
+  const token = crypto.randomBytes(32).toString('hex');
+  sessions.set(token, { username, expiresAt: Date.now() + SESSION_TTL_MS });
+  return token;
+}
+
+function getSessionUsername(token) {
+  const session = sessions.get(token);
+  if (!session) return null;
+  if (Date.now() > session.expiresAt) {
+    sessions.delete(token);
+    return null;
+  }
+  return session.username;
+}
+
+// Clean up expired sessions every hour to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, session] of sessions.entries()) {
+    if (now > session.expiresAt) {
+      sessions.delete(token);
+    }
+  }
+}, 60 * 60 * 1000).unref();
+
+// Authenticate request: verify Bearer token belongs to the given username.
+// Returns true on success; sends a 401 response and returns false on failure.
+function requireAuth(req, res, requiredUsername) {
+  const authHeader = req.headers['authorization'] ?? '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) {
+    res.status(401).json({ error: 'Nicht authentifiziert' });
+    return false;
+  }
+  const sessionUsername = getSessionUsername(token);
+  if (!sessionUsername || sessionUsername !== requiredUsername) {
+    res.status(401).json({ error: 'Nicht authentifiziert' });
+    return false;
+  }
+  return true;
+}
 const DB_PATH = process.env.DB_PATH || '/data/studiumsplaner.db';
 const DIST_DIR = join(__dirname, '..', 'dist');
 
@@ -60,7 +109,7 @@ app.use(express.static(DIST_DIR));
 // Validate that a value looks like a StudyPlan
 function isValidStudyPlan(data) {
   if (!data || typeof data !== 'object') return false;
-  if (typeof data.planName !== 'string') return false;
+  if (typeof data.planName !== 'string' || data.planName.length > 200) return false;
   if (typeof data.regularSemesters !== 'number') return false;
   if (data.startSeason !== 'winter' && data.startSeason !== 'summer') return false;
   if (typeof data.isConfigured !== 'boolean') return false;
@@ -96,6 +145,10 @@ app.post('/api/users', apiLimiter, async (req, res) => {
   }
 
   const password = req.body?.password;
+  if (typeof password === 'string' && password.length > MAX_PASSWORD_LENGTH) {
+    return res.status(400).json({ error: 'Passwort zu lang' });
+  }
+
   let passwordHash = null;
   if (typeof password === 'string' && password.length > 0) {
     passwordHash = await bcrypt.hash(password, 12);
@@ -103,7 +156,8 @@ app.post('/api/users', apiLimiter, async (req, res) => {
 
   try {
     stmtCreateUser.run(username, passwordHash);
-    res.status(201).json({ username });
+    const token = createSession(username);
+    res.status(201).json({ username, token });
   } catch (err) {
     if (
       err.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
@@ -129,7 +183,8 @@ app.post('/api/login', apiLimiter, async (req, res) => {
 
   // If user has no password, allow login without password
   if (user.password_hash === null) {
-    return res.json({ username: user.username, requiresPassword: false });
+    const token = createSession(user.username);
+    return res.json({ username: user.username, token });
   }
 
   const password = req.body?.password;
@@ -137,12 +192,17 @@ app.post('/api/login', apiLimiter, async (req, res) => {
     return res.status(401).json({ error: 'Passwort erforderlich', requiresPassword: true });
   }
 
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    return res.status(400).json({ error: 'Passwort zu lang' });
+  }
+
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) {
     return res.status(401).json({ error: 'Falsches Passwort' });
   }
 
-  res.json({ username: user.username, requiresPassword: false });
+  const token = createSession(user.username);
+  res.json({ username: user.username, token });
 });
 
 // GET /api/plan/:username – load plan for a user
@@ -151,6 +211,8 @@ app.get('/api/plan/:username', apiLimiter, (req, res) => {
   if (!username) {
     return res.status(400).json({ error: 'Ungültiger Benutzername' });
   }
+
+  if (!requireAuth(req, res, username)) return;
 
   const user = stmtGetUserByName.get(username);
   if (!user) {
@@ -175,6 +237,8 @@ app.post('/api/plan/:username', apiLimiter, (req, res) => {
   if (!username) {
     return res.status(400).json({ error: 'Ungültiger Benutzername' });
   }
+
+  if (!requireAuth(req, res, username)) return;
 
   if (!isValidStudyPlan(req.body)) {
     return res.status(400).json({ error: 'Ungültiges Plan-Format' });

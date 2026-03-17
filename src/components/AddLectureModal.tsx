@@ -64,7 +64,7 @@ export const AddLectureModal: React.FC<AddLectureModalProps> = ({ isOpen, onClos
       updateLecture(initialLecture.id, { ...formData, grade });
     } else {
       const newLecture: Lecture = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         ...formData,
         grade,
       };
@@ -100,6 +100,7 @@ export const AddLectureModal: React.FC<AddLectureModalProps> = ({ isOpen, onClos
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="z.B. Mathematik I"
               className="input-field"
+              maxLength={200}
               required
             />
           </div>
@@ -112,7 +113,10 @@ export const AddLectureModal: React.FC<AddLectureModalProps> = ({ isOpen, onClos
                 min="1"
                 max="30"
                 value={formData.ects}
-                onChange={(e) => setFormData({ ...formData, ects: parseInt(e.target.value) })}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setFormData({ ...formData, ects: isNaN(val) ? formData.ects : val });
+                }}
                 className="input-field"
                 required
               />
@@ -207,6 +211,7 @@ export const AddLectureModal: React.FC<AddLectureModalProps> = ({ isOpen, onClos
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Optionale Beschreibung..."
               className="input-field min-h-[80px] resize-none"
+              maxLength={1000}
             />
           </div>
 

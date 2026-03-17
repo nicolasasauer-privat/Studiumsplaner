@@ -4,10 +4,13 @@ import type { Lecture, Semester, SemesterSeason, StudyPlan } from './types';
 const PLAN_STORAGE_KEY = 'studyPlan';
 const CURRENT_USER_KEY = 'currentUser';
 
-const syncToServer = (plan: StudyPlan, username: string): void => {
+const syncToServer = (plan: StudyPlan, username: string, token: string): void => {
   fetch(`/api/plan/${encodeURIComponent(username)}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
     body: JSON.stringify(plan),
   }).catch(() => {
     // Server not available – localStorage-only mode
@@ -131,8 +134,10 @@ export const isValidStudyPlan = (data: unknown): data is StudyPlan => {
 
 interface StudyPlanStore extends StudyPlan {
   currentUser: string | null;
+  authToken: string | null;
   setCurrentUser: (username: string | null) => void;
-  loadPlanForUser: (username: string) => Promise<void>;
+  setAuthToken: (token: string | null) => void;
+  loadPlanForUser: (username: string, token: string) => Promise<void>;
   initializePlan: (options: { planName: string; regularSemesters: number; startSeason: SemesterSeason }) => void;
   setPlanName: (name: string) => void;
   addSemester: () => void;
@@ -161,6 +166,7 @@ const defaultPlan: StudyPlan = {
 
 export const useStudyPlanStore = create<StudyPlanStore>((set, get) => ({
   currentUser: null,
+  authToken: null,
   ...defaultPlan,
 
   setCurrentUser: (username: string | null) => {
@@ -168,16 +174,22 @@ export const useStudyPlanStore = create<StudyPlanStore>((set, get) => ({
       set({ currentUser: username });
       localStorage.setItem(CURRENT_USER_KEY, username);
     } else {
-      // Reset user and plan atomically when logging out
-      set({ currentUser: null, ...defaultPlan, isConfigured: false });
+      // Reset user, token, and plan atomically when logging out
+      set({ currentUser: null, authToken: null, ...defaultPlan, isConfigured: false });
       localStorage.removeItem(CURRENT_USER_KEY);
       localStorage.removeItem(PLAN_STORAGE_KEY);
     }
   },
 
-  loadPlanForUser: async (username: string) => {
+  setAuthToken: (token: string | null) => {
+    set({ authToken: token });
+  },
+
+  loadPlanForUser: async (username: string, token: string) => {
     try {
-      const res = await fetch(`/api/plan/${encodeURIComponent(username)}`);
+      const res = await fetch(`/api/plan/${encodeURIComponent(username)}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json() as unknown;
         const serverPlan = migrateStudyPlan(data);
@@ -402,8 +414,8 @@ export const useStudyPlanStore = create<StudyPlanStore>((set, get) => ({
       parkingLot: state.parkingLot,
     };
     localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(plan));
-    if (state.currentUser) {
-      syncToServer(plan, state.currentUser);
+    if (state.currentUser && state.authToken) {
+      syncToServer(plan, state.currentUser, state.authToken);
     }
     return JSON.stringify(plan);
   },

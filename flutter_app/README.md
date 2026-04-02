@@ -24,6 +24,23 @@ Sie bietet dieselbe Planungsfunktionalitaet wie die Web-App, jedoch als native A
 - Server-URL konfigurierbar ueber einen Einstellungsdialog
 - Dark-Mode-Design
 
+## Screenshots
+
+### Anmelden
+Beim Start meldet man sich mit einem bestehenden Benutzer an oder legt einen neuen an. Die Server-URL ist jederzeit über den Einstellungsbutton konfigurierbar.
+
+![Login-Bildschirm mit Benutzerliste](https://github.com/user-attachments/assets/2467ed86-43f0-45ec-b472-9251326b34c6)
+
+### Semesteruebersicht
+Die Hauptansicht zeigt alle Semester mit Veranstaltungskarten inklusive ECTS, Note, Klausurdatum und Bestandenstatus. Statistik-Chips im Header zeigen geplante und bestandene ECTS sowie die Durchschnittsnote. Veranstaltungen lassen sich per Langdruck in andere Semester oder den Parkplatz verschieben.
+
+![Hauptansicht mit Semestern und ECTS-Statistik](https://github.com/user-attachments/assets/82de6d1f-2384-483f-ab55-202aba6d84ac)
+
+### Veranstaltung anlegen
+Ueber den Dialog koennen neue Veranstaltungen mit Name, ECTS, Turnus (WS/SS/Beide), Semester, Klausurdatum, Bestandenstatus, Note (Slider 1,0–5,0), Mündliche-Prüfung-Markierung, Beschreibung und Farbe angelegt werden.
+
+![Dialog zum Anlegen einer neuen Veranstaltung](https://github.com/user-attachments/assets/7717c6d5-a78e-457a-b4d6-2d10d4e5bbbe)
+
 ## Wichtige Planungsregel
 
 Der Turnus (`WS`/`SS`/`Beide`) ist ein Hinweis und kein Blocker.

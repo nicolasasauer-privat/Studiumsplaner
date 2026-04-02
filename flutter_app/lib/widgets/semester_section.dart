@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/lecture.dart';
 import '../models/semester.dart';
 import '../providers/study_plan_provider.dart';
 import 'add_lecture_dialog.dart';

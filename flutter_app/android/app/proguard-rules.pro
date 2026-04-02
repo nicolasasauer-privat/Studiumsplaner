@@ -9,3 +9,7 @@
 # Kotlin
 -keep class kotlin.** { *; }
 -keep class kotlinx.** { *; }
+
+# Suppress warnings for Google Play Core classes referenced by Flutter's embedding
+# but not present in non-Play-Store builds
+-dontwarn com.google.android.play.core.**

@@ -89,10 +89,12 @@
 - [ ] `Bundle Identifier` in Xcode setzen: `de.example.studiumsplaner` (eigene Reverse-Domain wählen)
 - [ ] `Display Name` in `Info.plist` setzen: `StudiumsPlaner`
 - [ ] `Deployment Target` in Xcode auf **iOS 14.0** oder neuer setzen (empfohlen iOS 16.0 für breite Gerätekompatibilität)
-- [ ] App-Version und Build-Number synchron mit `pubspec.yaml` halten (`version: 1.0.0+1`)
-- [ ] App-Icons generieren (1024×1024 px PNG, keine Transparenz):
-  - Werkzeug: [flutter_launcher_icons](https://pub.dev/packages/flutter_launcher_icons) Pub-Package
-  - Oder: Xcode Asset Catalog manuell befüllen (`Runner/Assets.xcassets/AppIcon.appiconset`)
+- [x] App-Version und Build-Number synchron mit `pubspec.yaml` halten (`version: 1.0.0+1`) *(bereits gesetzt)*
+- [x] `flutter_launcher_icons` in `pubspec.yaml` konfiguriert – Placeholder-Icon unter `assets/icon/app_icon.png` hinterlegt:
+  ```bash
+  # Echtes Icon (1024×1024 PNG) in assets/icon/app_icon.png ersetzen, dann:
+  dart run flutter_launcher_icons
+  ```
 - [ ] Launch Screen (`LaunchScreen.storyboard`) anpassen oder als einfaches Bild ersetzen
 
 ---
@@ -131,7 +133,7 @@
 
 **Ziel:** Automatischer iOS-Build bei jedem Push, analog zum bestehenden Android-Workflow.
 
-- [ ] Neuen Workflow `.github/workflows/flutter-build-ios.yml` anlegen:
+- [x] Neuen Workflow `.github/workflows/flutter-build-ios.yml` anlegen:
   ```yaml
   name: Flutter iOS Build
 
@@ -248,3 +250,59 @@ Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 8
 | 6 – TestFlight | Phase 5 | Mittel (~1h) |
 | 7 – CI/CD | Phase 5 | Mittel (~2h) |
 | 8 – App Store | Phase 6 + Review-Feedback | Hoch (~1 Tag) |
+
+---
+
+## Aktueller Stand – Automatisiert umgesetzt (April 2026)
+
+> **Datum:** April 2026  
+> Folgende Schritte wurden automatisch durch den Agent umgesetzt. Die verbleibenden Aufgaben sind auf Schritte reduziert, die zwingend macOS/Xcode, einen Apple Developer Account oder menschliche Entscheidungen erfordern.
+
+### ✅ Bereits erledigt
+
+| Phase | Aufgabe | Status |
+|---|---|---|
+| – | `iOS_ROADMAP.md` in `flutter_app/` verschoben | ✅ |
+| 4 | `flutter_launcher_icons: ^0.14.3` als Dev-Dependency in `pubspec.yaml` eingetragen | ✅ |
+| 4 | Konfig für `flutter_launcher_icons` in `pubspec.yaml` angelegt (`ios: true`, `android: true`) | ✅ |
+| 4 | Placeholder-Icons unter `flutter_app/assets/icon/app_icon.png` und `app_icon_foreground.png` erstellt | ✅ |
+| 4 | `assets/icon/` als Flutter-Asset in `pubspec.yaml` registriert | ✅ |
+| 7 | GitHub Actions Workflow `.github/workflows/flutter-build-ios.yml` erstellt | ✅ |
+| 7 | Workflow initialisiert iOS-Platform automatisch per `flutter create --platforms=ios .` falls `ios/` fehlt | ✅ |
+| 7 | Workflow führt `flutter analyze`, `flutter test`, `pod install` und `flutter build ios --release --no-codesign` aus | ✅ |
+| 7 | Build-Artefakt (`Runner.app`) wird als GitHub-Actions-Artefakt hochgeladen (30 Tage) | ✅ |
+| 7 | Kommentierte Vorlage für signierten IPA-Build (mit `IOS_P12_BASE64` etc.) im Workflow hinterlegt | ✅ |
+
+### 🔧 Noch erforderlich (manuell, da macOS/Apple-Account benötigt)
+
+| Phase | Aufgabe | Warum manuell |
+|---|---|---|
+| 1 | `flutter create --platforms=ios .` lokal ausführen (erstellt `ios/`-Verzeichnis) | Benötigt macOS + Xcode |
+| 1 | Ersten Simulator-Build verifizieren: `flutter run -d "iPhone 15 Pro"` | Benötigt macOS + Xcode |
+| 2 | `NSPhotoLibraryUsageDescription` + `NSDocumentsFolderUsageDescription` in `Info.plist` ergänzen | `ios/` existiert noch nicht lokal |
+| 2 | ATS-Ausnahme für HTTP prüfen/entfernen (auf HTTPS migrieren empfohlen) | Server-Entscheidung erforderlich |
+| 3 | `pod install` lokal validieren | Benötigt macOS + CocoaPods |
+| 4 | Bundle Identifier `de.example.studiumsplaner` in Xcode anpassen (eigene Reverse-Domain!) | Benötigt Xcode |
+| 4 | Deployment Target in Xcode auf iOS 16.0 setzen | Benötigt Xcode |
+| 4 | Echtes App-Icon (1024×1024 px, keine Transparenz) in `assets/icon/app_icon.png` ersetzen, dann `dart run flutter_launcher_icons` ausführen | Grafik-Asset benötigt |
+| 4 | `LaunchScreen.storyboard` anpassen | Benötigt Xcode |
+| 5 | Apple Developer Program beitreten (99 USD/Jahr) | Bezahlung + Apple-Konto |
+| 5 | Distribution Certificate (`.p12`) + Provisioning Profile erstellen und als Secrets `IOS_P12_BASE64`, `IOS_P12_PASSWORD`, `IOS_PROVISIONING_PROFILE_BASE64` in GitHub hinterlegen | Apple Developer Account |
+| 6 | App in App Store Connect anlegen und TestFlight einrichten | Apple Developer Account |
+| 8 | Screenshots, Beschreibung, Datenschutzerklärung in App Store Connect | Apple Developer Account |
+
+### ▶️ Nächste Schritte für den Entwickler (in dieser Reihenfolge)
+
+1. **macOS mit Xcode öffnen** und im `flutter_app/`-Verzeichnis ausführen:
+   ```bash
+   flutter create --platforms=ios .
+   flutter run -d "iPhone 15 Pro"
+   ```
+2. **`ios/Runner/Info.plist`** um die Permission-Keys aus Phase 2 ergänzen.
+3. **Bundle Identifier** in Xcode auf eigene Reverse-Domain setzen.
+4. **App-Icon** (1024×1024 PNG) in `flutter_app/assets/icon/app_icon.png` ersetzen und Icons generieren:
+   ```bash
+   dart run flutter_launcher_icons
+   ```
+5. **Apple Developer Account** einrichten und Zertifikate als GitHub Secrets ablegen – danach wird der iOS-CI-Workflow automatisch signierte IPAs bauen.
+

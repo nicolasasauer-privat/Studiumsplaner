@@ -1,0 +1,92 @@
+name: Flutter iOS Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'flutter_app/**'
+      - '.github/workflows/flutter-build-ios.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'flutter_app/**'
+      - '.github/workflows/flutter-build-ios.yml'
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.x'
+          channel: stable
+          cache: true
+
+      - name: Initialize iOS platform (if not present)
+        working-directory: flutter_app
+        run: |
+          if [ ! -d "ios" ]; then
+            flutter create --platforms=ios .
+          fi
+
+      - name: Install dependencies
+        working-directory: flutter_app
+        run: flutter pub get
+
+      - name: Analyze code
+        working-directory: flutter_app
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run tests
+        working-directory: flutter_app
+        run: flutter test
+
+      - name: Install CocoaPods
+        run: sudo gem install cocoapods --no-document
+
+      - name: Pod install
+        working-directory: flutter_app/ios
+        run: pod install
+
+      - name: Build iOS (no codesign)
+        working-directory: flutter_app
+        run: flutter build ios --release --no-codesign
+
+      - name: Upload iOS build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-${{ github.sha }}
+          path: flutter_app/build/ios/iphoneos/Runner.app
+          retention-days: 30
+
+      # Signed IPA build (requires GitHub Secrets to be configured):
+      # - name: Import Distribution Certificate
+      #   uses: apple-actions/import-codesign-certs@v2
+      #   with:
+      #     p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
+      #     p12-password: ${{ secrets.IOS_P12_PASSWORD }}
+      #
+      # - name: Import Provisioning Profile
+      #   uses: apple-actions/import-provisioning-profiles@v1
+      #   with:
+      #     profile-data: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+      #
+      # - name: Build IPA
+      #   working-directory: flutter_app
+      #   run: flutter build ipa --release
+      #
+      # - name: Upload IPA
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: ios-release-ipa-${{ github.sha }}
+      #     path: flutter_app/build/ios/ipa/*.ipa
+      #     retention-days: 30

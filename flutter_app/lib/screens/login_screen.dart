@@ -182,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Kein Server konfiguriert. Bitte Einstellungen öffnen oder lokal fortfahren.',
+                'Kein Server konfiguriert. Bitte Einstellungen öffnen oder lokal verwenden.',
                 style: TextStyle(color: Colors.orange),
               ),
             ),

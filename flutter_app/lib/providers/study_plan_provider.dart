@@ -26,7 +26,7 @@ class StudyPlanProvider extends ChangeNotifier {
   bool get isLoggedIn => currentUser != null;
   bool get localMode => _localMode;
 
-  ApiService get _api => ApiService(_baseUrl);
+  static const _localUsername = 'lokal';
 
   // ─── Initialization ───────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ class StudyPlanProvider extends ChangeNotifier {
     _baseUrl = await _storage.loadBaseUrl();
     _localMode = await _storage.loadLocalMode();
     if (_localMode) {
-      currentUser = 'lokal';
+      currentUser = _localUsername;
     } else {
       final user = await _storage.loadUser();
       if (user != null) {
@@ -131,7 +131,7 @@ class StudyPlanProvider extends ChangeNotifier {
   Future<void> enterLocalMode() async {
     _syncTimer?.cancel();
     _localMode = true;
-    currentUser = 'lokal';
+    currentUser = _localUsername;
     authToken = null;
     await _storage.saveLocalMode(true);
     final saved = await _storage.loadPlan();

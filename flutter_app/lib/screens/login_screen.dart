@@ -279,6 +279,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             tooltip: 'Konto löschen',
                             onPressed: () => _deleteUser(u),
                           ),
+                          const SizedBox(width: 4),
                           const Icon(Icons.arrow_forward_ios,
                               size: 16),
                         ],

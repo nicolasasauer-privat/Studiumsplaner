@@ -258,14 +258,13 @@ app.post('/api/plan/:username', apiLimiter, (req, res) => {
   }
 });
 
-// DELETE /api/users/:username – delete user account
+// DELETE /api/users/:username – delete user account (no auth required; consistent with
+// the unauthenticated GET /api/users and POST /api/users endpoints for self-hosted use)
 app.delete('/api/users/:username', apiLimiter, (req, res) => {
   const username = sanitizeUsername(req.params.username);
   if (!username) {
     return res.status(400).json({ error: 'Ungültiger Benutzername' });
   }
-
-  if (!requireAuth(req, res, username)) return;
 
   try {
     const result = stmtDeleteUser.run(username);

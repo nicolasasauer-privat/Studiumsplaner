@@ -59,6 +59,40 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _deleteUser(String username) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Konto löschen?'),
+        content: Text(
+          'Soll das Konto "$username" unwiderruflich gelöscht werden? '
+          'Alle Daten gehen dabei verloren.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade700),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Löschen'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final provider = context.read<StudyPlanProvider>();
+    final err = await provider.deleteUserByName(username);
+    if (!mounted) return;
+    if (err != null) {
+      _showError('Fehler: $err');
+    } else {
+      setState(() => _users.remove(username));
+    }
+  }
+
   Future<void> _loginUser(String username) async {
     final provider = context.read<StudyPlanProvider>();
     final result = await provider.login(username, null);
@@ -236,8 +270,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const TextStyle(color: Colors.white)),
                       ),
                       title: Text(u),
-                      trailing: const Icon(Icons.arrow_forward_ios,
-                          size: 16),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.red, size: 20),
+                            tooltip: 'Konto löschen',
+                            onPressed: () => _deleteUser(u),
+                          ),
+                          const Icon(Icons.arrow_forward_ios,
+                              size: 16),
+                        ],
+                      ),
                       onTap: () => _loginUser(u),
                     );
                   },

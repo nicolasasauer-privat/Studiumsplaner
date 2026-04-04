@@ -126,7 +126,7 @@ class ApiService {
   }
 
   Future<ApiResult<void>> deleteUser(
-      String username, String token) async {
+      String username, [String? token]) async {
     try {
       final res = await http
           .delete(

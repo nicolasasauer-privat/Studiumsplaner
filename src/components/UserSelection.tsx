@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, UserPlus, LogIn, Eye, EyeOff } from 'lucide-react';
+import { BookOpen, UserPlus, LogIn, Eye, EyeOff, Trash2 } from 'lucide-react';
 
 interface UserSelectionProps {
   onLogin: (username: string, token: string) => void;
@@ -19,6 +19,8 @@ export const UserSelection: React.FC<UserSelectionProps> = ({ onLogin }) => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     fetch('/api/users')
@@ -101,6 +103,33 @@ export const UserSelection: React.FC<UserSelectionProps> = ({ onLogin }) => {
     }
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmUser) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/users/${encodeURIComponent(deleteConfirmUser)}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setUsers((prev) => prev.filter((u) => u !== deleteConfirmUser));
+        setDeleteConfirmUser(null);
+      } else {
+        try {
+          const data = await res.json() as { error?: string };
+          setError(data.error ?? 'Löschen fehlgeschlagen');
+        } catch {
+          setError('Löschen fehlgeschlagen');
+        }
+        setDeleteConfirmUser(null);
+      }
+    } catch {
+      setError('Server nicht erreichbar');
+      setDeleteConfirmUser(null);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-800 p-6 shadow-2xl">
@@ -121,14 +150,23 @@ export const UserSelection: React.FC<UserSelectionProps> = ({ onLogin }) => {
                 {users.length > 0 ? (
                   <div className="space-y-2 mb-4 max-h-56 overflow-y-auto">
                     {users.map((u) => (
-                      <button
-                        key={u}
-                        onClick={() => void handleUserSelect(u)}
-                        className="w-full text-left px-4 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 border border-slate-600 hover:border-blue-500 text-white transition-colors flex items-center gap-2"
-                      >
-                        <LogIn size={16} className="text-blue-400 flex-shrink-0" />
-                        <span className="truncate">{u}</span>
-                      </button>
+                      <div key={u} className="flex items-center gap-2">
+                        <button
+                          onClick={() => void handleUserSelect(u)}
+                          className="flex-1 text-left px-4 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 border border-slate-600 hover:border-blue-500 text-white transition-colors flex items-center gap-2"
+                        >
+                          <LogIn size={16} className="text-blue-400 flex-shrink-0" />
+                          <span className="truncate">{u}</span>
+                        </button>
+                        <button
+                          onClick={() => { setDeleteConfirmUser(u); setError(''); }}
+                          className="p-3 text-red-400 hover:text-red-300 hover:bg-slate-700 rounded-lg transition-colors flex-shrink-0"
+                          title={`${u} löschen`}
+                          aria-label={`${u} löschen`}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -248,6 +286,34 @@ export const UserSelection: React.FC<UserSelectionProps> = ({ onLogin }) => {
           </form>
         )}
       </div>
+
+      {deleteConfirmUser && (
+        <div className="fixed inset-0 z-60 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-800 p-6 shadow-2xl">
+            <h2 className="text-lg font-bold text-white mb-2">Konto löschen?</h2>
+            <p className="text-slate-300 text-sm mb-4">
+              Soll das Konto <span className="font-semibold text-white">{deleteConfirmUser}</span> unwiderruflich
+              gelöscht werden? Alle Daten gehen dabei verloren.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmUser(null)}
+                className="btn-secondary flex-1"
+                disabled={deleteLoading}
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={() => void handleDeleteConfirm()}
+                className="flex-1 px-4 py-2 rounded-lg bg-red-700 hover:bg-red-600 text-white font-medium transition-colors disabled:opacity-50"
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? 'Löschen…' : 'Löschen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

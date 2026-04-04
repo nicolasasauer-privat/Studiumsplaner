@@ -127,22 +127,24 @@ class _SemesterSectionState extends State<SemesterSection> {
                     constraints:
                         const BoxConstraints(minWidth: 32, minHeight: 32),
                     onSelected: (v) {
-                  if (v == 'delete') {
-                    _delete(context);
-                  } else {
-                    p.sortSemesterLectures(sem.id, v);
-                  }
-                },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(
-                      value: 'date', child: Text('Sortieren: Prüfungsdatum')),
-                  const PopupMenuItem(
-                      value: 'ects', child: Text('Sortieren: ECTS')),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Text('Semester löschen',
-                        style: TextStyle(color: Colors.red.shade400)),
+                      if (v == 'delete') {
+                        _delete(context);
+                      } else {
+                        p.sortSemesterLectures(sem.id, v);
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                          value: 'date', child: Text('Sortieren: Prüfungsdatum')),
+                      const PopupMenuItem(
+                          value: 'ects', child: Text('Sortieren: ECTS')),
+                      const PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Semester löschen',
+                            style: TextStyle(color: Colors.red.shade400)),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -189,12 +191,15 @@ class _SemesterSectionState extends State<SemesterSection> {
 
   Widget _miniChip(String text, Color color) => Container(
         padding:
-            const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+            const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
-          color: color.withAlpha(40),
-          borderRadius: BorderRadius.circular(4),
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Text(text,
-            style: TextStyle(fontSize: 10, color: color)),
+            style: TextStyle(
+                fontSize: 10,
+                color: color,
+                fontWeight: FontWeight.w600)),
       );
 }

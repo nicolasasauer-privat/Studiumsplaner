@@ -129,6 +129,27 @@ class StudyPlanProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Deletes the current user account on the server, then logs out.
+  /// Returns null on success, or an error string on failure.
+  Future<String?> deleteAccount() async {
+    if (currentUser == null || authToken == null) return 'Nicht angemeldet';
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final r = await _api.deleteUser(currentUser!, authToken!);
+      if (r.isSuccess) {
+        await logout();
+        return null;
+      }
+      return r.error ?? 'Löschen fehlgeschlagen';
+    } catch (e) {
+      return e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Switch to local-only mode — no server required.
   Future<void> enterLocalMode() async {
     _syncTimer?.cancel();

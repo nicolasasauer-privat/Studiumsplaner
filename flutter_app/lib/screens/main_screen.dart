@@ -73,6 +73,40 @@ class _MainScreenState extends State<MainScreen> {
     ));
   }
 
+  void _deleteAccount(StudyPlanProvider p) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Konto löschen?'),
+        content: Text(
+          'Soll das Konto "${p.currentUser}" unwiderruflich gelöscht werden? '
+          'Alle Daten gehen dabei verloren.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade700),
+            onPressed: () async {
+              Navigator.pop(context);
+              final err = await p.deleteAccount();
+              if (err != null && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('Fehler: $err'),
+                  backgroundColor: Colors.red.shade700,
+                ));
+              }
+            },
+            child: const Text('Löschen'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _addLecture(StudyPlanProvider p) {
     showDialog(
       context: context,
@@ -220,6 +254,13 @@ class _MainScreenState extends State<MainScreen> {
                   child: Icon(Icons.phone_android,
                       color: Colors.amber, size: 18),
                 ),
+              ),
+            if (!p.localMode)
+              IconButton(
+                icon: const Icon(Icons.person_remove,
+                    color: Colors.red, size: 20),
+                tooltip: 'Konto löschen',
+                onPressed: () => _deleteAccount(p),
               ),
             IconButton(
                 icon: const Icon(Icons.logout,

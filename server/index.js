@@ -90,6 +90,7 @@ db.exec(`
 const stmtGetAllUsers = db.prepare('SELECT username FROM users ORDER BY username');
 const stmtGetUserByName = db.prepare('SELECT id, username, password_hash FROM users WHERE username = ?');
 const stmtCreateUser = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)');
+const stmtDeleteUser = db.prepare('DELETE FROM users WHERE username = ?');
 const stmtGetPlan = db.prepare('SELECT plan_data FROM plans WHERE user_id = ?');
 const stmtUpsertPlan = db.prepare(`
   INSERT INTO plans (user_id, plan_data) VALUES (?, ?)
@@ -254,6 +255,32 @@ app.post('/api/plan/:username', apiLimiter, (req, res) => {
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: 'Fehler beim Speichern des Plans' });
+  }
+});
+
+// DELETE /api/users/:username – delete user account
+app.delete('/api/users/:username', apiLimiter, (req, res) => {
+  const username = sanitizeUsername(req.params.username);
+  if (!username) {
+    return res.status(400).json({ error: 'Ungültiger Benutzername' });
+  }
+
+  if (!requireAuth(req, res, username)) return;
+
+  try {
+    const result = stmtDeleteUser.run(username);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Benutzer nicht gefunden' });
+    }
+    // Invalidate all sessions for this user
+    for (const [token, session] of sessions.entries()) {
+      if (session.username === username) {
+        sessions.delete(token);
+      }
+    }
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'Fehler beim Löschen des Benutzers' });
   }
 });
 

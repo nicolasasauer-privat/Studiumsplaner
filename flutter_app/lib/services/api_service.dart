@@ -124,4 +124,27 @@ class ApiService {
       return ApiResult(error: e.toString());
     }
   }
+
+  Future<ApiResult<void>> deleteUser(
+      String username, String token) async {
+    try {
+      final res = await http
+          .delete(
+              Uri.parse(
+                  '$baseUrl/api/users/${Uri.encodeComponent(username)}'),
+              headers: _headers(token: token))
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) {
+        return const ApiResult(data: null);
+      }
+      try {
+        final j = jsonDecode(res.body) as Map<String, dynamic>;
+        return ApiResult(error: j['error']?.toString() ?? 'Fehler');
+      } catch (_) {
+        return ApiResult(error: 'HTTP ${res.statusCode}');
+      }
+    } catch (e) {
+      return ApiResult(error: e.toString());
+    }
+  }
 }

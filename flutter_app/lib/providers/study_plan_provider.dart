@@ -296,6 +296,11 @@ class StudyPlanProvider extends ChangeNotifier {
     await _save();
   }
 
+  Future<void> updateGradeWeighting(bool enabled) async {
+    _plan.weightAverageGradeByEcts = enabled;
+    await _save();
+  }
+
   Future<void> addSemester() async {
     final lastNum = _plan.semesters.isEmpty
         ? 0

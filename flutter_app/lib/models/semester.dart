@@ -35,10 +35,22 @@ class Semester {
   int get passedEcts =>
       lectures.where((l) => l.passed).fold(0, (s, l) => s + l.ects);
 
-  double? get averageGrade {
-    final graded =
-        lectures.where((l) => l.passed && l.grade != null).toList();
+  double? averageGrade({bool weightedByEcts = false}) {
+    final graded = lectures.where((l) => l.passed && l.grade != null).toList();
     if (graded.isEmpty) return null;
-    return graded.fold(0.0, (s, l) => s + l.grade!) / graded.length;
+    if (!weightedByEcts) {
+      return graded.fold(0.0, (sum, lecture) => sum + lecture.grade!) /
+          graded.length;
+    }
+
+    final totalWeightedEcts =
+        graded.fold<int>(0, (sum, lecture) => sum + lecture.ects);
+    if (totalWeightedEcts == 0) return null;
+
+    final weightedTotal = graded.fold<double>(
+      0.0,
+      (sum, lecture) => sum + (lecture.grade! * lecture.ects),
+    );
+    return weightedTotal / totalWeightedEcts;
   }
 }

@@ -6,6 +6,7 @@ class StudyPlan {
   int regularSemesters;
   String startSeason; // 'winter' | 'summer'
   bool isConfigured;
+  bool weightAverageGradeByEcts;
   List<Semester> semesters;
   List<Lecture> parkingLot;
 
@@ -14,6 +15,7 @@ class StudyPlan {
     this.regularSemesters = 6,
     this.startSeason = 'winter',
     this.isConfigured = false,
+    this.weightAverageGradeByEcts = false,
     List<Semester>? semesters,
     List<Lecture>? parkingLot,
   })  : semesters = semesters ?? [],
@@ -40,6 +42,8 @@ class StudyPlan {
       isConfigured: json.containsKey('isConfigured')
           ? json['isConfigured'] as bool? ?? inferredConfigured
           : inferredConfigured,
+      weightAverageGradeByEcts:
+          json['weightAverageGradeByEcts'] as bool? ?? false,
       semesters: semesters,
       parkingLot: parkingLot,
     );
@@ -50,6 +54,7 @@ class StudyPlan {
         'regularSemesters': regularSemesters,
         'startSeason': startSeason,
         'isConfigured': isConfigured,
+        'weightAverageGradeByEcts': weightAverageGradeByEcts,
         'semesters': semesters.map((s) => s.toJson()).toList(),
         'parkingLot': parkingLot.map((l) => l.toJson()).toList(),
       };
@@ -68,13 +73,29 @@ class StudyPlan {
         parkingLot.where((l) => l.passed).fold(0, (s, l) => s + l.ects);
   }
 
-  double? get averageGrade {
+  double? get averageGrade =>
+      calculateAverageGrade(weightedByEcts: weightAverageGradeByEcts);
+
+  double? calculateAverageGrade({bool weightedByEcts = false}) {
     final graded = <Lecture>[];
     for (final sem in semesters) {
       graded.addAll(sem.lectures.where((l) => l.passed && l.grade != null));
     }
     graded.addAll(parkingLot.where((l) => l.passed && l.grade != null));
     if (graded.isEmpty) return null;
-    return graded.fold(0.0, (s, l) => s + l.grade!) / graded.length;
+    if (!weightedByEcts) {
+      return graded.fold(0.0, (sum, lecture) => sum + lecture.grade!) /
+          graded.length;
+    }
+
+    final totalWeightedEcts =
+        graded.fold<int>(0, (sum, lecture) => sum + lecture.ects);
+    if (totalWeightedEcts == 0) return null;
+
+    final weightedTotal = graded.fold<double>(
+      0.0,
+      (sum, lecture) => sum + (lecture.grade! * lecture.ects),
+    );
+    return weightedTotal / totalWeightedEcts;
   }
 }

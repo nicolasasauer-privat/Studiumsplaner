@@ -10,6 +10,7 @@ import '../providers/study_plan_provider.dart';
 import '../widgets/add_lecture_dialog.dart';
 import '../widgets/parking_lot_section.dart';
 import '../widgets/plan_setup_dialog.dart';
+import '../widgets/plan_settings_dialog.dart';
 import '../widgets/semester_section.dart';
 
 class MainScreen extends StatefulWidget {
@@ -138,6 +139,16 @@ class _MainScreenState extends State<MainScreen> {
     } finally {
       _setupDialogOpen = false;
     }
+  }
+
+  Future<void> _openSettings(StudyPlanProvider p) async {
+    await showDialog(
+      context: context,
+      builder: (_) => PlanSettingsDialog(
+        initialWeightAverageGradeByEcts: p.plan.weightAverageGradeByEcts,
+        onSave: p.updateGradeWeighting,
+      ),
+    );
   }
 
   void _closeSetupIfNoLongerNeeded(StudyPlanProvider p) {
@@ -289,8 +300,12 @@ class _MainScreenState extends State<MainScreen> {
             IconButton(
                 icon: const Icon(Icons.settings,
                     color: Colors.white70, size: 20),
-                tooltip: 'Plan einrichten',
-                onPressed: () => _openSetup(p)),
+                tooltip: p.plan.isEffectivelyConfigured
+                    ? 'Planeinstellungen'
+                    : 'Plan einrichten',
+                onPressed: () => p.plan.isEffectivelyConfigured
+                    ? _openSettings(p)
+                    : _openSetup(p)),
             if (p.localMode)
               const Tooltip(
                 message: 'Lokaler Modus – keine Serververbindung',
@@ -358,7 +373,11 @@ class _MainScreenState extends State<MainScreen> {
         _chip('$passed ECTS', 'bestanden', Colors.green),
         if (avg != null) ...[
           const SizedBox(width: 8),
-          _chip('Ø ${avg.toStringAsFixed(1)}', 'Note', Colors.purple),
+          _chip(
+            'Ø ${avg.toStringAsFixed(1)}',
+            plan.weightAverageGradeByEcts ? 'Note · ECTS' : 'Note',
+            Colors.purple,
+          ),
         ],
       ],
     );

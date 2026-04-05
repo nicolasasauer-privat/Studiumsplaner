@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/lecture.dart';
 import '../models/semester.dart';
+import '../utils/exam_date_utils.dart';
 import 'lecture_card.dart' show kColors, hexColor;
 
 class AddLectureDialog extends StatefulWidget {
@@ -32,6 +33,7 @@ class _AddLectureDialogState extends State<AddLectureDialog> {
   late final TextEditingController _descCtrl;
 
   late String _season;
+  String? _examDateValue;
   late bool _passed;
   late bool _oral;
   double? _grade;
@@ -46,7 +48,10 @@ class _AddLectureDialogState extends State<AddLectureDialog> {
     _nameCtrl = TextEditingController(text: l?.name ?? '');
     _ectsCtrl =
         TextEditingController(text: l != null ? l.ects.toString() : '');
-    _dateCtrl = TextEditingController(text: l?.examDate ?? '');
+    _examDateValue = l?.examDate?.trim();
+    _dateCtrl = TextEditingController(
+      text: ExamDateUtils.formatStoredDateForDisplay(_examDateValue),
+    );
     _descCtrl = TextEditingController(text: l?.description ?? '');
     _season = l?.season ?? 'both';
     _passed = l?.passed ?? false;
@@ -65,6 +70,42 @@ class _AddLectureDialogState extends State<AddLectureDialog> {
     super.dispose();
   }
 
+  Future<void> _pickExamDate() async {
+    final now = DateTime.now();
+    final firstDate = DateTime(2000, 1, 1);
+    final lastDate = DateTime(2100, 12, 31);
+    var initialDate = ExamDateUtils.parseStoredDate(_examDateValue) ??
+        DateTime(now.year, now.month, now.day);
+
+    if (initialDate.isBefore(firstDate)) initialDate = firstDate;
+    if (initialDate.isAfter(lastDate)) initialDate = lastDate;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
+      helpText: 'Prüfungsdatum',
+      cancelText: 'Abbrechen',
+      confirmText: 'Übernehmen',
+    );
+
+    if (picked == null || !mounted) return;
+
+    setState(() {
+      _examDateValue = ExamDateUtils.formatForStorage(picked);
+      _dateCtrl.text = ExamDateUtils.formatForDisplay(picked);
+    });
+  }
+
+  void _clearExamDate() {
+    setState(() {
+      _examDateValue = null;
+      _dateCtrl.clear();
+    });
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -73,8 +114,7 @@ class _AddLectureDialogState extends State<AddLectureDialog> {
         id: widget.existing?.id ?? _uuid.v4(),
         name: _nameCtrl.text.trim(),
         ects: int.parse(_ectsCtrl.text.trim()),
-        examDate:
-            _dateCtrl.text.trim().isEmpty ? null : _dateCtrl.text.trim(),
+        examDate: _examDateValue,
         season: _season,
         description: _descCtrl.text.trim(),
         color: _color,
@@ -166,19 +206,27 @@ class _AddLectureDialogState extends State<AddLectureDialog> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _dateCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Prüfungsdatum (YYYY-MM-DD)',
-                  prefixIcon: Icon(Icons.event),
-                  hintText: '2025-01-20',
+                decoration: InputDecoration(
+                  labelText: 'Prüfungsdatum',
+                  prefixIcon: const Icon(Icons.event),
+                  hintText: 'Datum auswählen',
+                  suffixIcon: _dateCtrl.text.isEmpty
+                      ? const Icon(Icons.calendar_month)
+                      : IconButton(
+                          onPressed: _clearExamDate,
+                          tooltip: 'Datum entfernen',
+                          icon: const Icon(Icons.clear),
+                        ),
                 ),
-                keyboardType: TextInputType.datetime,
+                readOnly: true,
+                showCursor: false,
+                enableInteractiveSelection: false,
+                onTap: _pickExamDate,
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return null;
-                  if (!RegExp(r'^\d{4}-\d{2}-\d{2}$')
-                      .hasMatch(v.trim())) {
-                    return 'Format: YYYY-MM-DD';
+                  if ((v == null || v.trim().isEmpty) == (_examDateValue == null)) {
+                    return null;
                   }
-                  return null;
+                  return 'Bitte Datum auswählen';
                 },
                 textInputAction: TextInputAction.next,
               ),

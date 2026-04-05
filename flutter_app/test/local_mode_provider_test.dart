@@ -64,6 +64,7 @@ void main() {
       await provider.enterLocalMode();
       await provider.createUser('Clara', 'pw');
       await provider.initializePlan('Clara Plan', 8, 'summer');
+      await provider.updateGradeWeighting(true);
       await provider.logout();
       provider.dispose();
 
@@ -76,6 +77,7 @@ void main() {
       expect(restartedProvider.plan.planName, 'Clara Plan');
       expect(restartedProvider.plan.regularSemesters, 8);
       expect(restartedProvider.plan.startSeason, 'summer');
+      expect(restartedProvider.plan.weightAverageGradeByEcts, isTrue);
 
       restartedProvider.dispose();
     });

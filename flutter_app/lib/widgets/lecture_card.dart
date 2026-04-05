@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/lecture.dart';
 import '../models/semester.dart';
 import '../providers/study_plan_provider.dart';
+import '../utils/exam_date_utils.dart';
 import 'add_lecture_dialog.dart';
 
 // The 20 colors from the web app
@@ -224,7 +225,8 @@ class _LectureCardState extends State<LectureCard> {
                           const Icon(Icons.event,
                               size: 12, color: Colors.white54),
                           const SizedBox(width: 4),
-                          Text('Prüfung: ${l.examDate}',
+                          Text(
+                              'Prüfung: ${ExamDateUtils.formatStoredDateForDisplay(l.examDate)}',
                               style: const TextStyle(
                                   fontSize: 11, color: Colors.white54)),
                         ]),

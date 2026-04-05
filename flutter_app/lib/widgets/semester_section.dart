@@ -65,7 +65,8 @@ class _SemesterSectionState extends State<SemesterSection> {
 
   @override
   Widget build(BuildContext context) {
-    final avg = sem.averageGrade;
+    final avg =
+        sem.averageGrade(weightedByEcts: p.plan.weightAverageGradeByEcts);
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Column(children: [
@@ -100,7 +101,13 @@ class _SemesterSectionState extends State<SemesterSection> {
                   ],
                   if (avg != null) ...[
                     const SizedBox(width: 6),
-                    _miniChip('Ø ${avg.toStringAsFixed(1)}', Colors.purple),
+                    Tooltip(
+                      message: p.plan.weightAverageGradeByEcts
+                          ? 'ECTS-gewichtete Durchschnittsnote'
+                          : 'Ungewichtete Durchschnittsnote',
+                      child:
+                          _miniChip('Ø ${avg.toStringAsFixed(1)}', Colors.purple),
+                    ),
                   ],
                 ],
               ),

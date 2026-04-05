@@ -77,7 +77,39 @@ void main() {
               passed: false),
         ],
       );
-      expect(sem.averageGrade, 2.0);
+      expect(sem.averageGrade(), 2.0);
+    });
+
+    test('averageGrade can be weighted by ECTS', () {
+      final sem = Semester(
+        id: 's1',
+        number: 1,
+        season: 'winter',
+        lectures: [
+          Lecture(
+              id: 'l1',
+              name: 'A',
+              ects: 10,
+              season: 'winter',
+              color: '#FF6B6B',
+              passed: true,
+              grade: 1.0),
+          Lecture(
+              id: 'l2',
+              name: 'B',
+              ects: 5,
+              season: 'both',
+              color: '#4ECDC4',
+              passed: true,
+              grade: 3.0),
+        ],
+      );
+
+      expect(sem.averageGrade(), 2.0);
+      expect(
+        sem.averageGrade(weightedByEcts: true),
+        closeTo(1.6667, 0.0001),
+      );
     });
   });
 
@@ -88,10 +120,12 @@ void main() {
         regularSemesters: 6,
         startSeason: 'winter',
         isConfigured: true,
+        weightAverageGradeByEcts: true,
       );
       final restored = StudyPlan.fromJson(plan.toJson());
       expect(restored.planName, 'Test');
       expect(restored.regularSemesters, 6);
+      expect(restored.weightAverageGradeByEcts, isTrue);
     });
 
     test('fromJson handles decoded nested maps from persisted JSON', () {
@@ -147,6 +181,7 @@ void main() {
 
       expect(restored.isConfigured, isTrue);
       expect(restored.isEffectivelyConfigured, isTrue);
+      expect(restored.weightAverageGradeByEcts, isFalse);
     });
 
     test('passedEcts counts across semesters and parking lot', () {
@@ -185,6 +220,44 @@ void main() {
       );
       expect(plan.passedEcts, 9); // 4 (parking) + 5 (semester)
       expect(plan.totalEcts, 12);
+    });
+
+    test('averageGrade respects ECTS weighting setting', () {
+      final plan = StudyPlan(
+        weightAverageGradeByEcts: true,
+        semesters: [
+          Semester(
+            id: 's1',
+            number: 1,
+            season: 'winter',
+            lectures: [
+              Lecture(
+                id: 'l1',
+                name: 'Mathe',
+                ects: 10,
+                season: 'winter',
+                color: '#FF6B6B',
+                passed: true,
+                grade: 1.0,
+              ),
+            ],
+          ),
+        ],
+        parkingLot: [
+          Lecture(
+            id: 'p1',
+            name: 'Seminar',
+            ects: 5,
+            season: 'both',
+            color: '#4ECDC4',
+            passed: true,
+            grade: 3.0,
+          ),
+        ],
+      );
+
+      expect(plan.averageGrade, closeTo(1.6667, 0.0001));
+      expect(plan.calculateAverageGrade(weightedByEcts: false), 2.0);
     });
   });
 }

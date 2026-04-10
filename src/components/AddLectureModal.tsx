@@ -51,11 +51,11 @@ export const AddLectureModal: React.FC<AddLectureModalProps> = ({ isOpen, onClos
       return;
     }
 
-    const grade = formData.passed && formData.grade !== undefined
+    const grade = formData.passed && formData.grade != null
       ? formData.grade
       : undefined;
 
-    if (grade !== undefined && (grade < 1.0 || grade > 5.0)) {
+    if (grade != null && (grade < 1.0 || grade > 5.0)) {
       alert('Die Note muss zwischen 1,0 und 5,0 liegen.');
       return;
     }

@@ -85,12 +85,12 @@ export const LectureCard: React.FC<LectureCardProps> = ({ lecture, index, semest
                 <span className={`font-medium ${getSeasonColor(lecture.season)}`}>
                   {getSeasonLabel(lecture.season)}
                 </span>
-                {lecture.passed && lecture.grade !== undefined && (
+                {lecture.passed && lecture.grade != null && (
                   <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
                     Note: {lecture.grade.toFixed(1).replace('.', ',')}
                   </span>
                 )}
-                {lecture.passed && lecture.grade === undefined && (
+                {lecture.passed && lecture.grade == null && (
                   <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
                     bestanden
                   </span>

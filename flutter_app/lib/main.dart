@@ -29,7 +29,7 @@ class StudiPlanApp extends StatelessWidget {
           surface: const Color(0xFF1E293B),
         ),
         scaffoldBackgroundColor: const Color(0xFF0F172A),
-        cardTheme: CardThemeData(
+        cardTheme: CardTheme(
           color: const Color(0xFF1E293B),
           elevation: 2,
           shape:

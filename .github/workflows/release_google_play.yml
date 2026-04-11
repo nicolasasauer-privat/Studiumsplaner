@@ -1,0 +1,104 @@
+name: Build & Sign Flutter App
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'flutter_app/**'
+      - '.github/workflows/flutter-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'flutter_app/**'
+      - '.github/workflows/flutter-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        working-directory: flutter_app
+        run: flutter pub get
+
+      - name: Analyze code
+        working-directory: flutter_app
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run tests
+        working-directory: flutter_app
+        run: flutter test
+
+      - name: Build debug APK
+        working-directory: flutter_app
+        run: flutter build apk --debug
+
+      # Keystore decodieren und key.properties erstellen
+      - name: Decode keystore
+        if: env.KEYSTORE_BASE64 != ''
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        working-directory: flutter_app
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/release-key.jks
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=../app/release-key.jks\n' \
+            "$KEYSTORE_PASSWORD" "$KEYSTORE_PASSWORD" "$KEY_ALIAS" > android/key.properties
+
+      # Build release App Bundle (.aab) für Play Store
+      - name: Build release Bundle
+        if: env.KEYSTORE_BASE64 != ''
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        working-directory: flutter_app
+        run: flutter build appbundle --release
+
+      # Build release APK (optional, zum manuellen Installieren)
+      - name: Build release APK
+        if: env.KEYSTORE_BASE64 != ''
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        working-directory: flutter_app
+        run: flutter build apk --release
+
+      # Artifacts hochladen
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: studiumsplaner-debug
+          path: flutter_app/build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Upload Release Bundle (.aab)
+        if: env.KEYSTORE_BASE64 != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: studiumsplaner-release-bundle
+          path: flutter_app/build/app/outputs/bundle/release/app-release.aab
+
+      - name: Upload Release APK
+        if: env.KEYSTORE_BASE64 != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: studiumsplaner-release-apk
+          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk

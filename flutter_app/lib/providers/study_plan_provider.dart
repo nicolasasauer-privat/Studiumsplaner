@@ -80,7 +80,7 @@ class StudyPlanProvider extends ChangeNotifier {
 
   Future<List<String>> getUsers() async {
     if (_localMode) {
-      final users = await _storage.loadLocalUsers();
+      final users = (await _storage.loadLocalUsers()).toList();
       users.sort(
         (a, b) => a.username.toLowerCase().compareTo(b.username.toLowerCase()),
       );
